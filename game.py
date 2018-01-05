@@ -8,23 +8,19 @@ import random
 
 import os
 
-def get_image_dir():
-	directory = os.path.abspath(os.path.dirname(__file__))
-	directory = os.path.join(directory, 'data')
-	return directory
-
 def load_image(image_file_name):
 
-	full_path = os.path.join(get_image_dir(), image_file_name)
+	full_path = os.path.join('./data', image_file_name)
 	return image.load(full_path)
 
 
 class SpaceGameWindow(window.Window):
 
 	def __init__(self, *args, **kwargs):
-		self.max_monsters = 25
+		self.max_monsters = 50
 		#Let all of the standard stuff pass through
-		window.Window.__init__(self, *args, **kwargs)
+		#window.Window.__init__(self, *args, **kwargs)
+		window.Window.__init__(self, 800,600)
 		self.set_mouse_visible(False)
 		self.init_sprites()
 
@@ -57,7 +53,7 @@ class SpaceGameWindow(window.Window):
 			clock.tick()
 			#Gets fps and draw it
 			fps_text.text = ("fps: %d") % (clock.get_fps())
-			fps_text.draw()
+			#fps_text.draw()
 			self.flip()
 
 	def update(self):
@@ -166,9 +162,7 @@ class Sprite(object):
 		pass
 
 	def intersect(self, sprite):
-		"""Do the two sprites intersect?
-		@param sprite - Sprite - The Sprite to test
-		"""
+		#Do the two sprites intersect?
 		return not ((self.left > sprite.right)
 			or (self.right < sprite.left)
 			or (self.top < sprite.bottom)
@@ -213,7 +207,7 @@ class SpaceShip(Sprite):
 	def draw(self):
 		Sprite.draw(self)
 		self.kill_text.text = ("Kills: %d") % (self.kills)
-		self.kill_text.draw()
+		#self.kill_text.draw()
 
 	def on_kill(self):
 		self.kills += 1
@@ -240,7 +234,7 @@ class Bullet(Sprite):
 class Monster(Sprite):
 
 	def __init__(self, image_data, **kwargs):
-		self.y_velocity = 5
+		self.y_velocity = 1
 		self.set_x_velocity()
 		self.x_move_count = 0
 		self.x_velocity
