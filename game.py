@@ -4,9 +4,12 @@ from pyglet import window
 from pyglet import clock
 from pyglet import font
 from pyglet import image
-import random
 
+import numpy as np
+import random
 import os
+#import dqn 
+
 
 def load_image(image_file_name):
 
@@ -58,6 +61,8 @@ class SpaceGameWindow(window.Window):
 
 	def update(self):
 
+		self.ship.x, self.ship.y = 500 + 20 * np.random.random((2))
+
 		to_remove = []
 		for sprite in self.monsters:
 			sprite.update()
@@ -88,8 +93,9 @@ class SpaceGameWindow(window.Window):
 		#Is it dead?
 		monster_hit = self.ship.collide_once(self.monsters)
 		if (monster_hit is not None):
-			self.ship.dead = True
-			self.has_exit = True
+                        pass
+			#self.ship.dead = True
+			#self.has_exit = True
 
 	def draw(self):
 
@@ -107,8 +113,9 @@ class SpaceGameWindow(window.Window):
 	Event Handlers
 	*********************************************"""
 	def on_mouse_motion(self, x, y, dx, dy):
-		self.ship.x = x
-		self.ship.y = y
+	#	self.ship.x = x
+	#	self.ship.y = y
+                print x,y
 
 	def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
 		self.ship.x = x
@@ -202,11 +209,11 @@ class SpaceShip(Sprite):
 		#Create a font for our kill message
 		self.font = font.load('Arial', 28)
 		#The pyglet.font.Text object to display the FPS
-		self.kill_text = font.Text(self.font, y=text_y, x=text_x)
+		#self.kill_text = font.Text(self.font, y=text_y, x=text_x)
 
 	def draw(self):
 		Sprite.draw(self)
-		self.kill_text.text = ("Kills: %d") % (self.kills)
+		#self.kill_text.text = ("Kills: %d") % (self.kills)
 		#self.kill_text.draw()
 
 	def on_kill(self):
