@@ -8,7 +8,6 @@ from pyglet import image
 import numpy as np
 import random
 import os
-#import dqn 
 
 
 def load_image(image_file_name):
@@ -20,51 +19,87 @@ def load_image(image_file_name):
 class SpaceGameWindow(window.Window):
 
 	def __init__(self, *args, **kwargs):
-		self.max_monsters = 50
+		self.max_monsters = kwargs['num_monsters'] - 2
 		#Let all of the standard stuff pass through
 		#window.Window.__init__(self, *args, **kwargs)
-		window.Window.__init__(self, 800,600)
+		window.Window.__init__(self, 1600,700)
 		self.set_mouse_visible(False)
 		self.init_sprites()
 
 	def init_sprites(self):
 		self.bullets = []
 		self.monsters = []
-		self.ship = SpaceShip(self.width - 150, 10, x=100,y=100)
+		self.ship = SpaceShip(self.width - 150, 10, x=self.width/2,y=100)
 		self.bullet_image = load_image("bullet.png")
 		self.monster_image = load_image("monster.png")
 
-	def main_loop(self):
+	def main_loop(self, action):
+		x_move, y_move = action
+		ship_pos = [self.ship.x + x_move, self.ship.y + y_move]
 
-		#Create a font for our FPS clock
-		ft = font.load('Arial', 28)
-		#The pyglet.font.Text object to display the FPS
-		fps_text = font.Text(ft, y=10)
+		x_out_of_boundary = ship_pos[0] > self.width or ship_pos[0] < 0
+		y_out_of_boundary = ship_pos[1] > self.height or ship_pos[1] < 0
 
-		#Schedule the Monster creation
-		clock.schedule_interval(self.create_monster, 0.3)
-		clock.set_fps_limit(30)
+		self.has_exit = x_out_of_boundary or y_out_of_boundary
+		#if x_out_of_boundary or y_out_of_boundary:
+		#	self.ship.x = 400
+		#	self.ship.y = 400
 
-		while not self.has_exit:
-			self.dispatch_events()
-			self.clear()
+		#ft = font.load('Arial', 28)
+		#fps_text = font.Text(ft, y=10)
 
-			self.update()
-			self.draw()
+		self.create_monster()
+		clock.set_fps_limit(512)
 
-			#Tick the clock
-			clock.tick()
-			#Gets fps and draw it
-			fps_text.text = ("fps: %d") % (clock.get_fps())
-			#fps_text.draw()
-			self.flip()
 
-	def update(self):
+		#while not self.has_exit:
+		self.dispatch_events()
+		self.clear()
 
-		self.ship.x, self.ship.y = 500 + 20 * np.random.random((2))
+		#update ship action,  bullet and monster
+		self.update(ship_pos)
+		self.draw()
+
+		#Tick the clock
+		clock.tick()
+		#Gets fps and draw it
+		#fps_text.text = ("fps: %d") % (clock.get_fps())
+		#fps_text.draw()
+		self.flip()
+
+		self.create_monster()
+
+		"""
+		position = [[ship_pos[0], ship_pos[1]]]
+		for sprite in self.monsters:
+			pos = sprite.get_position()
+			#pos[0] /= float(self.width)
+			#pos[1] /= float(self.height)
+			position.append(pos)
+		"""
+		position = []
+		position.append(ship_pos + [np.sqrt(np.square(ship_pos[0])+np.square(ship_pos[1]))])
+		p1 = [self.width - ship_pos[0], self.height - ship_pos[1]]
+		p1.append(np.sqrt(np.square(p1[0])+np.square(p1[1])))
+		position.append(p1)
+		for sprite in self.monsters:
+			pos = sprite.get_position()
+			pos[0] -= ship_pos[0]
+			pos[1] -= ship_pos[1]
+			pos.append(np.sqrt(np.square(pos[0])+np.square(pos[1])))
+			position.append(pos)
+
+		reward = 1
+		position = np.array(position)
+		return (position, reward, self.has_exit)
+
+	def update(self, pos):
+		#x_move, y_move = (0.7 - np.random.random((2))) * (x_move, y_move)
+
+		self.ship.x, self.ship.y = pos
 
 		to_remove = []
-		for sprite in self.monsters:
+		for sprite in self.monsters	:
 			sprite.update()
 			#Is it dead?
 			if (sprite.dead):
@@ -93,9 +128,9 @@ class SpaceGameWindow(window.Window):
 		#Is it dead?
 		monster_hit = self.ship.collide_once(self.monsters)
 		if (monster_hit is not None):
-                        pass
-			#self.ship.dead = True
-			#self.has_exit = True
+			self.ship.dead = True
+			self.has_exit = True
+			self.close()
 
 	def draw(self):
 
@@ -105,13 +140,12 @@ class SpaceGameWindow(window.Window):
 			sprite.draw()
 		self.ship.draw()
 
-	def create_monster(self, interval):
-		if (len(self.monsters) < self.max_monsters):
-			self.monsters.append(Monster(self.monster_image, x=random.randint(0, self.width) , y=self.height))
+	def create_monster(self):
+		while (len(self.monsters) < self.max_monsters):
+			self.monsters.append(Monster(self.monster_image, x=random.randint(0, self.width) , y=random.randint(10,self.height/20)*20))
 
 	"""******************************************
 	Event Handlers
-	*********************************************"""
 	def on_mouse_motion(self, x, y, dx, dy):
 		pass
 	#	self.ship.x = x
@@ -130,6 +164,7 @@ class SpaceGameWindow(window.Window):
 					, self.height
 					, x=x + (self.ship.image.width / 2) - (self.bullet_image.width / 2)
 					, y=y))
+	*********************************************"""
 
 class Sprite(object):
 
@@ -260,10 +295,15 @@ class Monster(Sprite):
 			self.x_move_count = 0
 			self.set_x_velocity()
 
+	def get_position(self):
+		#return [self.x, self.y, self.x_velocity/3., self.y_velocity/3.]
+		return [self.x, self.y]
+
 	def set_x_velocity(self):
 		self.x_velocity = random.randint(-3,3)
 
 if __name__ == "__main__":
 	space = SpaceGameWindow()
-	space.main_loop()
+	while True:
+		space.main_loop([1,1])
 
