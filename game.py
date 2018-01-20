@@ -113,9 +113,10 @@ class SpaceGameWindow(window.Window):
 	Event Handlers
 	*********************************************"""
 	def on_mouse_motion(self, x, y, dx, dy):
+		pass
 	#	self.ship.x = x
 	#	self.ship.y = y
-                print x,y
+                #print x,y
 
 	def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
 		self.ship.x = x
