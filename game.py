@@ -22,45 +22,53 @@ class SpaceGameWindow(window.Window):
 		self.max_monsters = kwargs['num_monsters'] - 1
 		#Let all of the standard stuff pass through
 		#window.Window.__init__(self, *args, **kwargs)
-		window.Window.__init__(self, 200,200)
+		self.vis = kwargs['visible']
+		window.Window.__init__(self, 600,800, visible=self.vis)
 		self.set_mouse_visible(False)
 		self.init_sprites()
 
 	def init_sprites(self):
 		self.bullets = []
 		self.monsters = []
-		self.ship = SpaceShip(self.width - 150, 10, x=self.width/2,y=10)
+		self.ship = SpaceShip(self.width - 150, 10, x=self.width/2,y=0)
 		self.bullet_image = load_image("bullet.png")
 		self.monster_image = load_image("monster.png")
 
 	def main_loop(self, action):
 		#x_move, y_move = action
-		x_move = action
+		x_move, on_fire = list(action)
 		y_move = 0
 		ship_pos = [self.ship.x + x_move, self.ship.y + y_move]
 
 		x_out_of_boundary = ship_pos[0] > self.width or ship_pos[0] < 0
 		y_out_of_boundary = ship_pos[1] > self.height or ship_pos[1] < 0
 
-		self.has_exit = x_out_of_boundary or y_out_of_boundary
-		#if x_out_of_boundary or y_out_of_boundary:
-		#	self.ship.x = 400
-		#	self.ship.y = 400
+		#self.has_exit = x_out_of_boundary or y_out_of_boundary
+		if x_out_of_boundary:
+			self.ship.x = 0
 
 		#ft = font.load('Arial', 28)
 		#fps_text = font.Text(ft, y=10)
 
+		if on_fire == 1:
+			self.bullets.append(Bullet(self.ship
+					, self.bullet_image
+					, self.height
+					, x=self.ship.x + (self.ship.image.width / 2) - (self.bullet_image.width / 2)
+					, y=self.ship.y))
+
 		self.create_monster()
-		clock.set_fps_limit(120)
 
 
-		#while not self.has_exit:
-		self.dispatch_events()
-		self.clear()
+		if self.visible:
+				self.dispatch_events()
+				self.clear()
+				self.draw()
+		else:
+				clock.set_fps_limit(180)
 
 		#update ship action,  bullet and monster
 		self.update(ship_pos)
-		self.draw()
 
 		#Tick the clock
 		clock.tick()
@@ -71,7 +79,7 @@ class SpaceGameWindow(window.Window):
 
 		self.create_monster()
 
-		position = [[ship_pos[0], ship_pos[1]]]
+		position = [[ship_pos[0], self.width - ship_pos[0]]]
 		for sprite in self.monsters:
 			pos = sprite.get_position()
 			#pos[0] /= float(self.width)
@@ -91,7 +99,7 @@ class SpaceGameWindow(window.Window):
 			position.append(pos)
 		"""
 
-		reward = 1
+		reward = self.ship.kills
 		position = np.array(position)
 		return (position, reward, self.has_exit)
 
@@ -129,10 +137,13 @@ class SpaceGameWindow(window.Window):
 		self.ship.update()
 		#Is it dead?
 		monster_hit = self.ship.collide_once(self.monsters)
+
+		"""
 		if (monster_hit is not None):
 			self.ship.dead = True
 			self.has_exit = True
 			self.close()
+		"""
 
 	def draw(self):
 
@@ -144,9 +155,9 @@ class SpaceGameWindow(window.Window):
 
 	def create_monster(self):
 		a = random.randint(0, self.width)
-		b = min(a + 70, self.width)
+		#b = min(a + 30, self.width)
 		while (len(self.monsters) < self.max_monsters):
-			self.monsters.append(Monster(self.monster_image, x=random.randint(a, b), y=self.height))
+			self.monsters.append(Monster(self.monster_image, x=a, y=random.randint(200,self.height)))
 
 	"""******************************************
 	Event Handlers
@@ -163,13 +174,7 @@ class SpaceGameWindow(window.Window):
 	def on_mouse_press(self, x, y, button, modifiers):
 
 		if (button == 1):
-			self.bullets.append(Bullet(self.ship
-					, self.bullet_image
-					, self.height
-					, x=x + (self.ship.image.width / 2) - (self.bullet_image.width / 2)
-					, y=y))
 	*********************************************"""
-
 class Sprite(object):
 
 	def __get_left(self):
@@ -249,12 +254,12 @@ class SpaceShip(Sprite):
 		#Create a font for our kill message
 		self.font = font.load('Arial', 28)
 		#The pyglet.font.Text object to display the FPS
-		#self.kill_text = font.Text(self.font, y=text_y, x=text_x)
+		self.kill_text = font.Text(self.font, y=text_y, x=text_x)
 
 	def draw(self):
 		Sprite.draw(self)
-		#self.kill_text.text = ("Kills: %d") % (self.kills)
-		#self.kill_text.draw()
+		self.kill_text.text = ("Kills: %d") % (self.kills)
+		self.kill_text.draw()
 
 	def on_kill(self):
 		self.kills += 1
@@ -263,7 +268,7 @@ class SpaceShip(Sprite):
 class Bullet(Sprite):
 
 	def __init__(self, parent_ship, image_data, top, **kwargs):
-		self.velocity = 3
+		self.velocity = 10
 		self.screen_top = top
 		self.parent_ship = parent_ship
 		Sprite.__init__(self,"", image_data, **kwargs)
@@ -278,10 +283,11 @@ class Bullet(Sprite):
 		"""We have hit a monster let the parent know"""
 		self.parent_ship.on_kill()
 
+
 class Monster(Sprite):
 
 	def __init__(self, image_data, **kwargs):
-		self.y_velocity = 2
+		self.y_velocity = 1
 		self.set_x_velocity()
 		self.x_move_count = 0
 		self.x_velocity
@@ -304,7 +310,7 @@ class Monster(Sprite):
 		return [self.x, self.y]
 
 	def set_x_velocity(self):
-		self.x_velocity = 0.1 * random.randint(-1,1)
+		self.x_velocity = random.randint(-1,1)
 
 if __name__ == "__main__":
 	space = SpaceGameWindow()
