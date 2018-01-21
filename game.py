@@ -19,22 +19,24 @@ def load_image(image_file_name):
 class SpaceGameWindow(window.Window):
 
 	def __init__(self, *args, **kwargs):
-		self.max_monsters = kwargs['num_monsters'] - 2
+		self.max_monsters = kwargs['num_monsters'] - 1
 		#Let all of the standard stuff pass through
 		#window.Window.__init__(self, *args, **kwargs)
-		window.Window.__init__(self, 1600,700)
+		window.Window.__init__(self, 200,200)
 		self.set_mouse_visible(False)
 		self.init_sprites()
 
 	def init_sprites(self):
 		self.bullets = []
 		self.monsters = []
-		self.ship = SpaceShip(self.width - 150, 10, x=self.width/2,y=100)
+		self.ship = SpaceShip(self.width - 150, 10, x=self.width/2,y=10)
 		self.bullet_image = load_image("bullet.png")
 		self.monster_image = load_image("monster.png")
 
 	def main_loop(self, action):
-		x_move, y_move = action
+		#x_move, y_move = action
+		x_move = action
+		y_move = 0
 		ship_pos = [self.ship.x + x_move, self.ship.y + y_move]
 
 		x_out_of_boundary = ship_pos[0] > self.width or ship_pos[0] < 0
@@ -49,7 +51,7 @@ class SpaceGameWindow(window.Window):
 		#fps_text = font.Text(ft, y=10)
 
 		self.create_monster()
-		clock.set_fps_limit(512)
+		clock.set_fps_limit(120)
 
 
 		#while not self.has_exit:
@@ -69,7 +71,6 @@ class SpaceGameWindow(window.Window):
 
 		self.create_monster()
 
-		"""
 		position = [[ship_pos[0], ship_pos[1]]]
 		for sprite in self.monsters:
 			pos = sprite.get_position()
@@ -88,6 +89,7 @@ class SpaceGameWindow(window.Window):
 			pos[1] -= ship_pos[1]
 			pos.append(np.sqrt(np.square(pos[0])+np.square(pos[1])))
 			position.append(pos)
+		"""
 
 		reward = 1
 		position = np.array(position)
@@ -141,8 +143,10 @@ class SpaceGameWindow(window.Window):
 		self.ship.draw()
 
 	def create_monster(self):
+		a = random.randint(0, self.width)
+		b = min(a + 70, self.width)
 		while (len(self.monsters) < self.max_monsters):
-			self.monsters.append(Monster(self.monster_image, x=random.randint(0, self.width) , y=random.randint(10,self.height/20)*20))
+			self.monsters.append(Monster(self.monster_image, x=random.randint(a, b), y=self.height))
 
 	"""******************************************
 	Event Handlers
@@ -259,7 +263,7 @@ class SpaceShip(Sprite):
 class Bullet(Sprite):
 
 	def __init__(self, parent_ship, image_data, top, **kwargs):
-		self.velocity = 5
+		self.velocity = 3
 		self.screen_top = top
 		self.parent_ship = parent_ship
 		Sprite.__init__(self,"", image_data, **kwargs)
@@ -277,7 +281,7 @@ class Bullet(Sprite):
 class Monster(Sprite):
 
 	def __init__(self, image_data, **kwargs):
-		self.y_velocity = 1
+		self.y_velocity = 2
 		self.set_x_velocity()
 		self.x_move_count = 0
 		self.x_velocity
@@ -300,7 +304,7 @@ class Monster(Sprite):
 		return [self.x, self.y]
 
 	def set_x_velocity(self):
-		self.x_velocity = random.randint(-3,3)
+		self.x_velocity = 0.1 * random.randint(-1,1)
 
 if __name__ == "__main__":
 	space = SpaceGameWindow()
