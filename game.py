@@ -11,66 +11,42 @@ import os
 
 
 def load_image(image_file_name):
-
 	full_path = os.path.join('./data', image_file_name)
 	return image.load(full_path)
 
 
 class SpaceGameWindow(window.Window):
-
 	def __init__(self, *args, **kwargs):
-		self.max_monsters = kwargs['num_monsters'] - 1
-		#Let all of the standard stuff pass through
+		self.max_monsters = 1
 		#window.Window.__init__(self, *args, **kwargs)
-		self.vis = kwargs['visible']
-		window.Window.__init__(self, 600,800, visible=self.vis)
+		window.Window.__init__(self, 1600,800, visible=True)
 		self.set_mouse_visible(False)
 		self.init_sprites()
 
 	def init_sprites(self):
 		self.bullets = []
 		self.monsters = []
-		self.ship = SpaceShip(self.width - 150, 10, x=self.width/2,y=0)
+		self.ship = SpaceShip(self.width - 150, 10, x=100 + self.width/2, y=self.height - 120)
 		self.bullet_image = load_image("bullet.png")
-		self.monster_image = load_image("monster.png")
+		#self.monster_image = load_image("monster.png")
+		self.monster_image = load_image("ball.png")
 
-	def main_loop(self, action):
-		#x_move, y_move = action
-		x_move, on_fire = list(action)
-		y_move = 0
-		ship_pos = [self.ship.x + x_move, self.ship.y + y_move]
-
-		x_out_of_boundary = ship_pos[0] > self.width or ship_pos[0] < 0
-		y_out_of_boundary = ship_pos[1] > self.height or ship_pos[1] < 0
-
+	def main_loop(self, x_speed, y_speed):
+		x_out_of_boundary = self.ship.x < 0 or self.ship.x > self.width
 		#self.has_exit = x_out_of_boundary or y_out_of_boundary
 		if x_out_of_boundary:
-			self.ship.x = 0
-
-		#ft = font.load('Arial', 28)
-		#fps_text = font.Text(ft, y=10)
-
-		if on_fire == 1:
-			self.bullets.append(Bullet(self.ship
-					, self.bullet_image
-					, self.height
-					, x=self.ship.x + (self.ship.image.width / 2) - (self.bullet_image.width / 2)
-					, y=self.ship.y))
+			self.ship.x = 100
 
 		self.create_monster()
 
+		self.dispatch_events()
+		self.clear()
+		self.draw()
 
-		if self.visible:
-				self.dispatch_events()
-				self.clear()
-				self.draw()
-		else:
-				clock.set_fps_limit(180)
-
-		#update ship action,  bullet and monster
-		self.update(ship_pos)
+		self.update(x_speed, y_speed)
 
 		#Tick the clock
+		#clock.schedule_interval(self.create_monster, 0.3)
 		clock.tick()
 		#Gets fps and draw it
 		#fps_text.text = ("fps: %d") % (clock.get_fps())
@@ -78,75 +54,30 @@ class SpaceGameWindow(window.Window):
 		self.flip()
 
 		self.create_monster()
+		return self.has_exit
 
-		position = [[ship_pos[0], self.width - ship_pos[0]]]
-		for sprite in self.monsters:
-			pos = sprite.get_position()
-			#pos[0] /= float(self.width)
-			#pos[1] /= float(self.height)
-			position.append(pos)
-		"""
-		position = []
-		position.append(ship_pos + [np.sqrt(np.square(ship_pos[0])+np.square(ship_pos[1]))])
-		p1 = [self.width - ship_pos[0], self.height - ship_pos[1]]
-		p1.append(np.sqrt(np.square(p1[0])+np.square(p1[1])))
-		position.append(p1)
-		for sprite in self.monsters:
-			pos = sprite.get_position()
-			pos[0] -= ship_pos[0]
-			pos[1] -= ship_pos[1]
-			pos.append(np.sqrt(np.square(pos[0])+np.square(pos[1])))
-			position.append(pos)
-		"""
-
-		reward = self.ship.kills
-		position = np.array(position)
-		return (position, reward, self.has_exit)
-
-	def update(self, pos):
-		#x_move, y_move = (0.7 - np.random.random((2))) * (x_move, y_move)
-
-		self.ship.x, self.ship.y = pos
-
+	def update(self, x_speed, y_speed):
 		to_remove = []
-		for sprite in self.monsters	:
-			sprite.update()
+		for sprite in self.monsters:
+			sprite.update(x_speed, y_speed)
 			#Is it dead?
 			if (sprite.dead):
 				to_remove.append(sprite)
+
 		#Remove dead sprites
 		for sprite in to_remove:
 			self.monsters.remove(sprite)
-
-		#Bullet update and collision
-		to_remove = []
-		for sprite in self.bullets:
-			sprite.update()
-			if (not sprite.dead):
-				monster_hit = sprite.collide_once(self.monsters)
-				if (monster_hit is not None):
-					sprite.on_kill()
-					self.monsters.remove(monster_hit)
-					to_remove.append(sprite)
-			else:
-				to_remove.append(sprite)
-		#Remove bullets that hit monsters
-		for sprite in to_remove:
-			self.bullets.remove(sprite)
 
 		self.ship.update()
 		#Is it dead?
 		monster_hit = self.ship.collide_once(self.monsters)
 
-		"""
 		if (monster_hit is not None):
 			self.ship.dead = True
 			self.has_exit = True
 			self.close()
-		"""
 
 	def draw(self):
-
 		for sprite in self.bullets:
 			sprite.draw()
 		for sprite in self.monsters:
@@ -154,29 +85,11 @@ class SpaceGameWindow(window.Window):
 		self.ship.draw()
 
 	def create_monster(self):
-		a = random.randint(0, self.width)
-		#b = min(a + 30, self.width)
 		while (len(self.monsters) < self.max_monsters):
-			self.monsters.append(Monster(self.monster_image, x=a, y=random.randint(200,self.height)))
+			self.monsters.append(Monster(self.monster_image, x=50, y=0))
 
-	"""******************************************
-	Event Handlers
-	def on_mouse_motion(self, x, y, dx, dy):
-		pass
-	#	self.ship.x = x
-	#	self.ship.y = y
-                #print x,y
 
-	def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-		self.ship.x = x
-		self.ship.y = y
-
-	def on_mouse_press(self, x, y, button, modifiers):
-
-		if (button == 1):
-	*********************************************"""
 class Sprite(object):
-
 	def __get_left(self):
 		return self.x
 	left = property(__get_left)
@@ -245,72 +158,26 @@ class Sprite(object):
 		return None
 
 class SpaceShip(Sprite):
-
 	def __init__(self, text_x, text_y, **kwargs):
-
-		self.kills = 0
-		Sprite.__init__(self, "ship.png", **kwargs)
-
-		#Create a font for our kill message
-		self.font = font.load('Arial', 28)
-		#The pyglet.font.Text object to display the FPS
-		self.kill_text = font.Text(self.font, y=text_y, x=text_x)
+		Sprite.__init__(self, "white_goal.png", **kwargs)
 
 	def draw(self):
 		Sprite.draw(self)
-		self.kill_text.text = ("Kills: %d") % (self.kills)
-		self.kill_text.draw()
-
-	def on_kill(self):
-		self.kills += 1
-
-
-class Bullet(Sprite):
-
-	def __init__(self, parent_ship, image_data, top, **kwargs):
-		self.velocity = 10
-		self.screen_top = top
-		self.parent_ship = parent_ship
-		Sprite.__init__(self,"", image_data, **kwargs)
-
-	def update(self):
-		self.y += self.velocity
-		#Have we gone off the screen?
-		if (self.bottom > self.screen_top):
-			self.dead = True
-
-	def on_kill(self):
-		"""We have hit a monster let the parent know"""
-		self.parent_ship.on_kill()
 
 
 class Monster(Sprite):
-
 	def __init__(self, image_data, **kwargs):
-		self.y_velocity = 1
-		self.set_x_velocity()
-		self.x_move_count = 0
-		self.x_velocity
 		Sprite.__init__(self, "", image_data, **kwargs)
 
-	def update(self):
-		self.y -= self.y_velocity
-		self.x += self.x_velocity#random.randint(-3,3)
-		self.x_move_count += 1
-		#Have we gone beneath the botton of the screen?
-		if (self.y < 0):
+	def update(self, x_velocity, y_velocity):
+		self.y += y_velocity
+		self.x += x_velocity
+		#Have we gone beneath the botton or the top of the screen?
+		if (self.y < 0 or self.y>800):
 			self.dead = True
 
-		if (self.x_move_count >=30):
-			self.x_move_count = 0
-			self.set_x_velocity()
-
 	def get_position(self):
-		#return [self.x, self.y, self.x_velocity/3., self.y_velocity/3.]
 		return [self.x, self.y]
-
-	def set_x_velocity(self):
-		self.x_velocity = random.randint(-1,1)
 
 if __name__ == "__main__":
 	space = SpaceGameWindow()
