@@ -159,22 +159,20 @@ class SpaceGameWindow(window.Window):
 		while (len(self.monsters) < self.max_monsters):
 			self.monsters.append(Monster(self.monster_image, x=a, y=random.randint(200,self.height)))
 
-	"""******************************************
-	Event Handlers
 	def on_mouse_motion(self, x, y, dx, dy):
-		pass
-	#	self.ship.x = x
-	#	self.ship.y = y
-                #print x,y
-
-	def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
 		self.ship.x = x
 		self.ship.y = y
+		print(x,y)
+
+	def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+		pass
+		#self.ship.x = x
+		#self.ship.y = y
 
 	def on_mouse_press(self, x, y, button, modifiers):
-
 		if (button == 1):
-	*********************************************"""
+			print('hit')
+
 class Sprite(object):
 
 	def __get_left(self):
@@ -254,12 +252,12 @@ class SpaceShip(Sprite):
 		#Create a font for our kill message
 		self.font = font.load('Arial', 28)
 		#The pyglet.font.Text object to display the FPS
-		self.kill_text = font.Text(self.font, y=text_y, x=text_x)
+		#self.kill_text = font.Text(self.font, y=text_y, x=text_x)
 
 	def draw(self):
 		Sprite.draw(self)
-		self.kill_text.text = ("Kills: %d") % (self.kills)
-		self.kill_text.draw()
+		#self.kill_text.text = ("Kills: %d") % (self.kills)
+		#self.kill_text.draw()
 
 	def on_kill(self):
 		self.kills += 1
@@ -313,7 +311,8 @@ class Monster(Sprite):
 		self.x_velocity = random.randint(-1,1)
 
 if __name__ == "__main__":
-	space = SpaceGameWindow()
-	while True:
-		space.main_loop([1,1])
+	space = SpaceGameWindow(num_monsters=3, visible=True)
+	while True: 
+		i = random.randint(0,3)
+		space.main_loop([i,i])
 
