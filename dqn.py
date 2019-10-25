@@ -72,9 +72,9 @@ class DQNAgent:
 		act_values = self.model.predict(state)
 
 		if time % 500 == 499:
-			print '~~~~~~~~~~~~~action~~~~~~~~~~~~'
-			print np.argmax(act_values[0]) 
-			print act_values[0]
+			print('~~~~~~~~~~~~~action~~~~~~~~~~~~')
+			print(np.argmax(act_values[0]))
+			print(act_values[0])
 		return np.argmax(act_values[0], 1)  # returns action direction
 
 	def replay(self, batch_size):
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 	batch_size = 128
 
 	for e in range(EPISODES):
-		if e % 10 == 1:
+		if e % 100 == 1:
 			visible = True
 		else:
 			visible = False
@@ -121,10 +121,9 @@ if __name__ == "__main__":
 			state, _, done = space.main_loop(init_act)
 			state /= 100
 
-		 	if not done:
+			if not done:
 				break
 			else:
-				#print 'init done~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 				space.close()
 			
 		state = np.reshape(state, [1, state_size, channel])
@@ -137,12 +136,12 @@ if __name__ == "__main__":
 			next_state /= 100
 
 			if time % 50 == 0 and time > 1000:
-				print next_state[2:20]
+				print(next_state[2:20])
 			#reward = 4*reward - np.sum(abs(action-1)) if not done else -30
 			reward = reward - 6*action[1]  # if not done else -200
 			total_reward += reward
 			if visible: 
-				print '---------------------_> reward:%d' % reward 
+				print('---------------------_> reward:%d' % reward)
 			
 			next_state = np.reshape(next_state, [1, state_size, channel])
 			agent.remember(state, action, reward, next_state, done)
@@ -158,5 +157,5 @@ if __name__ == "__main__":
 		if len(agent.memory) > batch_size:
 			agent.replay(batch_size)
 		if e % 100 == 0:
-			print '\nsaving checkpoint file...\n'
+			print('\nsaving checkpoint file...\n')
 			agent.save("./save/dodge-dqn.h5")

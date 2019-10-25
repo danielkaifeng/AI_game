@@ -4,41 +4,9 @@ from random import randint, uniform
 from particle import Particle 
 import pytweening as tween
 
-vec = pg.math.Vector2
 
 
-WIDTH = 1200
-HEIGHT = 800
-FPS = 60
-GRIDSIZE = 32
-NUM_MOBS = 2
-MOB_SIZE = 16
-NEIGHBOR_RADIUS = 75
-ALIGN_WEIGHT = 1
-COHERE_WEIGHT = 1.2
-SEPARATE_WEIGHT = 1.6
-MAX_SPEED = 5
-MAX_FORCE = 0.2
-APPROACH_RADIUS = 100
-SEEK_RADIUS = 300
 
-WANDER_RADIUS = 150
-WANDER_DISTANCE = 255
-# define colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-CYAN = (0, 255, 255)
-YELLOW = (255, 255, 0)
-LIGHTGREY = (40, 40, 40)
-
-# initialize pg and create window
-pg.init()
-pg.mixer.init()
-screen = pg.display.set_mode((WIDTH, HEIGHT))
-pg.display.set_caption("Flocking Example")
-clock = pg.time.Clock()
 
 def draw_text(text, size, color, x, y, align="topleft"):
 	font_name = pg.font.match_font('hack')
@@ -56,8 +24,9 @@ def draw_grid():
 class Player(pg.sprite.Sprite):
 	def __init__(self):
 		pg.sprite.Sprite.__init__(self)
-		self.image = pg.Surface((30, 30))
-		self.image.fill(GREEN)
+		#self.image = pg.Surface((30, 30))
+		#self.image.fill(GREEN)
+		self.image = pg.image.load('man.png').convert_alpha()
 		self.rect = self.image.get_rect()
 		self.pos = vec(WIDTH / 2, HEIGHT / 2)
 		self.rect.center = self.pos
@@ -102,14 +71,14 @@ class Predator(pg.sprite.Sprite):
 
 	def wander(self):
 		steer = vec(0, 0)
-		future = self.pos + self.vel.normalize() * WANDER_DISTANCE
-		target = future + vec(WANDER_RADIUS, 0).rotate(uniform(0, 360))
+		future = self.pos + self.vel.normalize() * self.WANDER_DISTANCE
+		target = future + vec(self.WANDER_RADIUS, 0).rotate(uniform(0, 360))
 		steer = self.seek(target)
 		self.draw_data = [future, target]
 		return steer
 
 	def seek(self, target):
-		desired = (target - self.pos).normalize() * MAX_SPEED
+		desired = (target - self.pos).normalize() * self.MAX_SPEED
 		steer = (desired - self.vel)
 		if steer.length_squared() > 0.2**2:
 			steer.scale_to_length(0.2)
@@ -134,44 +103,55 @@ class Predator(pg.sprite.Sprite):
 		self.rect.center = self.pos
 
 class Mob(pg.sprite.Sprite):
+	MAX_SPEED = 2
+	NEIGHBOR_RADIUS = 75
+	ALIGN_WEIGHT = 1
+	COHERE_WEIGHT = 1.2
+	SEPARATE_WEIGHT = 1.6
+	MAX_FORCE = 0.2
+	APPROACH_RADIUS = 100
+	SEEK_RADIUS = 300
+	WANDER_RADIUS = 150
+	WANDER_DISTANCE = 255
+
 	def __init__(self):
 		self.groups = all_sprites, mobs
 		pg.sprite.Sprite.__init__(self, self.groups)
 		#self.image = pg.Surface((MOB_SIZE, MOB_SIZE))
 		#self.image.fill(YELLOW)
-		self.image = pg.image.load('flyMan_fly.png').convert_alpha()
+		self.image = pg.image.load('monster.png').convert_alpha()
 		self.rect = self.image.get_rect()
 		self.pos = vec(randint(25, WIDTH - 25), randint(25, HEIGHT - 25))
-		self.vel = vec(MAX_SPEED, 0).rotate(uniform(0, 360))
+		self.vel = vec(self.MAX_SPEED, 0).rotate(uniform(0, 360))
 		self.acc = vec(0, 0)
 		self.rect.center = self.pos
 
 	def seek(self, target):
 		steer = vec(0, 0)
 		dist = target - self.pos
-		if dist.length_squared() < SEEK_RADIUS**2:
-			desired = dist.normalize() * MAX_SPEED
+		if dist.length_squared() < self.SEEK_RADIUS**2:
+			desired = dist.normalize() * self.MAX_SPEED
 			steer = desired - self.vel
-			if steer.length_squared() > MAX_FORCE**2:
-				steer.scale_to_length(MAX_FORCE)
+			if steer.length_squared() > self.MAX_FORCE**2:
+				steer.scale_to_length(self.MAX_FORCE)
 		return steer
 
 	def separation(self, a_dist):
 		# move away from other mobs
 		desired = a_dist
 		if desired.length_squared() > 0:
-			desired.scale_to_length(MAX_SPEED)
+			desired.scale_to_length(self.MAX_SPEED)
 		steer = (desired - self.vel)
-		if steer.length_squared() > MAX_FORCE**2:
-			steer.scale_to_length(MAX_FORCE)
+		if steer.length_squared() > self.MAX_FORCE**2:
+			steer.scale_to_length(self.MAX_FORCE)
 		return steer
 
 	def alignment(self, a_vel):
 		desired = a_vel
-		desired.scale_to_length(MAX_SPEED)
+		desired.scale_to_length(self.MAX_SPEED)
 		steer = (desired - self.vel)
-		if steer.length_squared() > MAX_FORCE**2:
-			steer.scale_to_length(MAX_FORCE)
+		if steer.length_squared() > self.MAX_FORCE**2:
+			steer.scale_to_length(self.MAX_FORCE)
 		return steer
 
 	def cohesion(self, a_pos):
@@ -187,7 +167,7 @@ class Mob(pg.sprite.Sprite):
 		for mob in mobs:
 			if mob != self:
 				d = self.pos.distance_to(mob.pos)
-				if d < NEIGHBOR_RADIUS:
+				if d < self.NEIGHBOR_RADIUS:
 					a_pos += mob.pos
 					a_vel += mob.vel
 					a_dist += (self.pos - mob.pos).normalize() / d
@@ -204,16 +184,16 @@ class Mob(pg.sprite.Sprite):
 		# self.acc = self.seek(pg.mouse.get_pos())
 		# self.acc = vec(0, 0)
 		if count > 0:
-			sep = self.separation(a_dist) * SEPARATE_WEIGHT
-			ali = self.alignment(a_vel) * ALIGN_WEIGHT
-			coh = self.cohesion(a_pos) * COHERE_WEIGHT
+			sep = self.separation(a_dist) * self.SEPARATE_WEIGHT
+			ali = self.alignment(a_vel) * self.ALIGN_WEIGHT
+			coh = self.cohesion(a_pos) * self.COHERE_WEIGHT
 			self.acc += sep + ali + coh
-		if self.acc.length_squared() == 0 and self.vel.length() < MAX_SPEED:
-			desired = self.vel.normalize() * MAX_SPEED
+		if self.acc.length_squared() == 0 and self.vel.length() < self.MAX_SPEED:
+			desired = self.vel.normalize() * self.MAX_SPEED
 			self.acc = desired - self.vel
 		self.acc += self.seek(p1.pos) * 0.75
-		if self.acc.length_squared() > MAX_FORCE**2:
-			self.acc.scale_to_length(MAX_FORCE)
+		if self.acc.length_squared() > self.MAX_FORCE**2:
+			self.acc.scale_to_length(self.MAX_FORCE)
 		self.vel += self.acc
 		self.pos += self.vel
 		if self.pos.x > WIDTH:
@@ -234,24 +214,16 @@ class Mob(pg.sprite.Sprite):
 		# acc
 		pg.draw.line(screen, RED, self.pos, (self.pos + self.acc * scale * 5), 5)
 		# rad
-		pg.draw.circle(screen, CYAN, (int(self.pos.x), int(self.pos.y)), NEIGHBOR_RADIUS, 1)
+		pg.draw.circle(screen, CYAN, (int(self.pos.x), int(self.pos.y)), self.NEIGHBOR_RADIUS, 1)
 
-if __name__ == '__main__':
-	spawn = vec(400, 300)
-	all_bullet = pg.sprite.Group()
-	size = 8
+def game_loop():
+	size = 10
 	circ = pg.Surface((size, size)).convert_alpha()
 	circ.fill((0, 0, 0, 0))
 	pg.draw.circle(circ, (255, 255, 0), (size // 2, size // 2), size // 2)
 	grav = vec(0, 200)
 
 
-	all_sprites = pg.sprite.Group()
-	mobs = pg.sprite.Group()
-	predators = pg.sprite.Group()
-	# p1 = Predator()
-	p1 = Player()
-	all_sprites.add(p1)
 	for i in range(NUM_MOBS):
 		Mob()
 	paused = False
@@ -280,22 +252,6 @@ if __name__ == '__main__':
 					Mob()
 				if event.key == pg.K_v:
 					show_vectors = not show_vectors
-				if event.key == pg.K_q:
-					ALIGN_WEIGHT += 0.1
-				if event.key == pg.K_z:
-					ALIGN_WEIGHT -= 0.1
-				if event.key == pg.K_w:
-					SEPARATE_WEIGHT += 0.1
-				if event.key == pg.K_x:
-					SEPARATE_WEIGHT -= 0.1
-				if event.key == pg.K_e:
-					COHERE_WEIGHT += 0.1
-				if event.key == pg.K_c:
-					COHERE_WEIGHT -= 0.1
-				if event.key == pg.K_t:
-					NEIGHBOR_RADIUS += 5
-				if event.key == pg.K_b:
-					NEIGHBOR_RADIUS -= 5
 	
 		# Update
 		p1.update()
@@ -310,16 +266,58 @@ if __name__ == '__main__':
 		draw_grid()
 		all_bullet.draw(screen)
 		all_sprites.draw(screen)
-		draw_text("A: {:.1f}".format(ALIGN_WEIGHT), 18, WHITE, 5, 5)
-		draw_text("S: {:.1f}".format(SEPARATE_WEIGHT), 18, WHITE, 5, 25)
-		draw_text("C: {:.1f}".format(COHERE_WEIGHT), 18, WHITE, 5, 45)
-		draw_text("R: {}".format(NEIGHBOR_RADIUS), 18, WHITE, 5, 65)
+		#draw_text("C: {:.1f}".format(self.COHERE_WEIGHT), 18, WHITE, 5, 45)
 		if show_vectors:
 			for sprite in mobs:
 				sprite.draw_vectors()
+
+		for bullet in all_bullet:
+			hits = pg.sprite.spritecollide(bullet, mobs, False)
+			for hit in hits:
+				hit.kill()
+
+		while len(mobs) < NUM_MOBS:
+			Mob()
+
 		pg.display.flip()
 	
 	pg.quit()
 
 
+all_sprites = pg.sprite.Group()
+mobs = pg.sprite.Group()
+predators = pg.sprite.Group()
+all_bullet = pg.sprite.Group()
+
+vec = pg.math.Vector2
+if 1:
+	WIDTH = 1200
+	HEIGHT = 800
+	FPS = 60
+	GRIDSIZE = 32
+	NUM_MOBS = 2
+	MOB_SIZE = 16
+	# define colors
+	WHITE = (255, 255, 255)
+	BLACK = (0, 0, 0)
+	RED = (255, 0, 0)
+	GREEN = (0, 255, 0)
+	CYAN = (0, 255, 255)
+	YELLOW = (255, 255, 0)
+	LIGHTGREY = (40, 40, 40)
+
+	# initialize pg and create window
+	pg.init()
+	pg.mixer.init()
+	screen = pg.display.set_mode((WIDTH, HEIGHT))
+	pg.display.set_caption("Flocking Example")
+	clock = pg.time.Clock()
+	# p1 = Predator()
+	p1 = Player()
+	all_sprites.add(p1)
+
+
+
+if __name__ == '__main__':
+	game_loop()
 
